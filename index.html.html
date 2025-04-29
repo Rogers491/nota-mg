@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Nota de Pedido – M&G Barra</title>
+<style>
+/* ----- A5 fixo 148×210 mm + grade ----- */
+body{font-family:Arial,Helvetica,sans-serif;margin:0;}
+.recibo{width:148mm;height:210mm;border:1.2px solid #000;box-sizing:border-box;
+       padding:12px;background:#fff;margin:auto;}
+.topo{border-bottom:1px solid #333;margin-bottom:6px;padding-bottom:4px;}
+.tabela{width:100%;border-collapse:collapse;font-size:8pt;margin-bottom:6px;}
+.tabela th,.tabela td{border:1px solid #000;padding:2px;}        /* grade total */
+.tabela th{text-align:center;background:#f0f0f0;}
+.tabela td:nth-child(1),.tabela td:nth-child(3),.tabela td:nth-child(4){text-align:right;}
+.tabela td:nth-child(2){width:55%;text-align:left;}
+.rodape{font-size:9pt;border-top:1px solid #333;padding-top:4px;
+       display:flex;justify-content:space-between;}
+.total{border:1px solid #000;padding:2px 6px;background:#f8f8f8;font-weight:bold;}
+@media print{body{margin:0;}.recibo{border:none;padding:0;}}
+</style>
+</head>
+<body>
+<div style="max-width:600px;margin:20px auto;">
+  <label><strong>Cole o pedido bruto:</strong></label><br>
+  <textarea id="txt" rows="5" style="width:100%;font-family:monospace;"></textarea><br>
+  <button onclick="gerar()">GERAR</button>
+  <button onclick="window.print()">IMPRIMIR</button>
+</div>
+
+<div class="recibo" id="recibo">
+  <div class="topo">
+    <img src="https://mg-nota-generator.lovable.app/lovable-uploads/8f70f2cb-7d00-4a87-a20a-b05b0f4a714e.png"
+         style="width:100%;max-height:40mm;object-fit:contain;">
+  </div>
+
+  <div style="font-size:9pt;border-bottom:1px dashed #333;margin-bottom:6px;padding-bottom:4px;">
+    <div><strong>Nome:</strong> <span id="cli"></span></div>
+    <div><strong>Endereço:</strong> <span id="end"></span></div>
+    <div><strong>Data:</strong> <span id="data"></span>&nbsp;&nbsp;<strong>Nº:</strong> <span id="num"></span></div>
+  </div>
+
+  <table class="tabela">
+    <thead><tr><th>UNID.</th><th>PRODUTO</th><th>V.UNIT</th><th>TOTAL</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <div class="rodape">
+    <div><strong>Pagamento:</strong> <span id="pgto"></span></div>
+    <div><strong>TOTAL&nbsp;R$</strong> <span class="total" id="tot"></span></div>
+  </div>
+</div>
+
+<script>
+const PROD={'Galão 20L Biovida':{a:['bio','biovida'],p:{pix:17,cartao:18,dinheiro:17}},
+'Galão 20L Premier':{a:['premier','premie','premiar','premiere'],p:{pix:22,cartao:22,dinheiro:22}},
+'Galão 20L Lindoya Joia':{a:['lind','lindoya','joia'],p:{pix:25,cartao:25,dinheiro:25}}};
+let n=0;const $=id=>document.getElementById(id),money=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+function gerar(){
+  const txt=$('txt').value.trim();if(!txt)return;
+  const pos=txt.indexOf(' - ');if(pos===-1)return alert('Formato errado');
+  const cab=txt.slice(0,pos).trim(),list=txt.slice(pos+3).trim(),idx=cab.search(/\d/);
+  const cli=cab.slice(0,idx).trim(),end=cab.slice(idx).trim(),
+        pg=/cart(ã|a)o/i.test(txt)?'Cartão':/pix/i.test(txt)?'Pix':'Dinheiro/Pix';
+  const itens=[],re=/(\d{1,2})\s+([a-zçãéêôõíó]+)/gi;let m,total=0;
+  while((m=re.exec(list))){
+    const q=+m[1];if(q<1||q>10)continue;
+    const ap=m[2].toLowerCase(),p=Object.entries(PROD).find(([_,v])=>v.a.includes(ap));
+    if(!p)continue;const[nome,meta]=p,u=meta.p[pg.toLowerCase().startsWith('cart')?'cartao':pg.toLowerCase()],t=u*q;
+    total+=t;itens.push({q,nome,u,t});
+  }
+  if(!itens.length)return alert('Itens não reconhecidos');
+  n++;$('cli').textContent=cli;$('end').textContent=end;$('data').textContent=new Date().toLocaleDateString('pt-BR');
+  $('num').textContent=String(n).padStart(3,'0');$('pgto').textContent=pg;$('tot').textContent=money(total);
+  const tb=$('tbody');tb.innerHTML='';itens.forEach(it=>tb.insertAdjacentHTML('beforeend',
+    `<tr><td>${String(it.q).padStart(2,'0')}</td><td>${it.nome}</td><td>${money(it.u)}</td><td>${money(it.t)}</td></tr>`));
+  while(tb.rows.length<6)tb.insertAdjacentHTML('beforeend','<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>');
+}
+</script>
+</body>
+</html>
